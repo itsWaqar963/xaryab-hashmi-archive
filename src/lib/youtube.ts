@@ -54,7 +54,7 @@ export async function fetchAllVideosFromChannel(channelId: string, channelName: 
           videoId: item.snippet.resourceId.videoId,
           title: item.snippet.title,
           description: item.snippet.description,
-          thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+          thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
           publishedAt: item.snippet.publishedAt,
           channelTitle: item.snippet.channelTitle || channelName,
         }));
@@ -82,35 +82,53 @@ export async function fetchAllVideosFromChannel(channelId: string, channelName: 
   return allVideos;
 }
 
-// Fetch latest videos (limited) - for quick syncs
-export async function fetchLatestVideosFromChannel(channelId: string, maxResults: number = 15): Promise<YouTubeVideo[]> {
+// Fetch videos with pagination support (Default maxResults set to 500 so all videos are fetched)
+export async function fetchLatestVideosFromChannel(channelId: string, maxResults: number = 500): Promise<YouTubeVideo[]> {
   const apiKey = getYouTubeApiKey();
   if (!apiKey) {
     throw new Error('YouTube API key is not configured');
   }
 
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${maxResults}`;
+  const uploadsPlaylistId = channelIdToUploadsPlaylistId(channelId);
+  const allVideos: YouTubeVideo[] = [];
+  let nextPageToken: string | undefined = undefined;
 
   try {
-    const response = await fetch(searchUrl);
-    const data = await response.json();
+    while (allVideos.length < maxResults) {
+      const fetchCount = Math.min(50, maxResults - allVideos.length);
+      const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?key=${apiKey}&playlistId=${uploadsPlaylistId}&part=snippet&maxResults=${fetchCount}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
 
-    if (data.error) {
-      throw new Error(`YouTube API error: ${data.error.message}`);
+      const response = await fetch(playlistUrl);
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(`YouTube API error: ${data.error.message}`);
+      }
+
+      if (!data.items || data.items.length === 0) {
+        break;
+      }
+
+      const videos: YouTubeVideo[] = data.items
+        .filter((item: any) => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
+        .map((item: any) => ({
+          videoId: item.snippet.resourceId.videoId,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+          publishedAt: item.snippet.publishedAt,
+          channelTitle: item.snippet.channelTitle,
+        }));
+
+      allVideos.push(...videos);
+
+      nextPageToken = data.nextPageToken;
+      if (!nextPageToken) {
+        break; // Uploads playlist end reached
+      }
     }
 
-    const videos: YouTubeVideo[] = data.items
-      .filter((item: any) => item.id.kind === 'youtube#video')
-      .map((item: any) => ({
-        videoId: item.id.videoId,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-        publishedAt: item.snippet.publishedAt,
-        channelTitle: item.snippet.channelTitle,
-      }));
-
-    return videos;
+    return allVideos;
   } catch (error) {
     console.error('Error fetching videos from channel:', error);
     throw error;
@@ -142,7 +160,7 @@ export async function fetchVideoDetailsById(videoId: string): Promise<YouTubeVid
       videoId: item.id,
       title: item.snippet.title,
       description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+      thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
       publishedAt: item.snippet.publishedAt,
       channelTitle: item.snippet.channelTitle,
     };
@@ -160,15 +178,7 @@ export function extractYouTubeId(input: string): string | null {
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
     return trimmed;
   }
-  
-  // Comprehensive regex supporting all YouTube URL formats:
-  // - youtube.com/watch?v=
-  // - youtu.be/
-  // - youtube.com/shorts/
-  // - youtube.com/embed/
-  // - youtube.com/v/
-  // - youtube.com/u/
-  // - URLs with tracking parameters (?si=, &t=, etc.)
+
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = trimmed.match(regExp);
 
