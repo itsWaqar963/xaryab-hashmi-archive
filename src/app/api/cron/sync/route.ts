@@ -66,7 +66,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const targetChannel = searchParams.get('channel') || 'ALL';
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = parseInt(searchParams.get('limit') || '1000', 10);
 
     let channelsToProcess = Object.entries(CHANNEL_IDS);
     if (targetChannel !== 'ALL' && CHANNEL_IDS[targetChannel]) {
@@ -78,11 +78,14 @@ export async function GET(request: Request) {
     let videosUpdated = 0;
 
     for (const [channelName, channelId] of channelsToProcess) {
+      console.log(`Starting smart sync for channel: ${channelName}`);
       const videos = await fetchLatestVideosFromChannel(channelId, limit);
       
+      let consecutiveExistingCount = 0;
+      const MATCH_THRESHOLD = 5; // Lagatar 5 pehle se synced videos milne par channel scan stop ho jaye ga
+
       for (const video of videos) {
         videosProcessed++;
-        const categorization = categorizeVideo(video.title, video.description);
         
         const { data: existingVideo } = await supabase
           .from('videos')
@@ -91,17 +94,29 @@ export async function GET(request: Request) {
           .single();
 
         if (existingVideo) {
+          consecutiveExistingCount++;
+          videosUpdated++;
+
           await supabase.from('videos').update({
             title: video.title,
             description: video.description,
             thumbnail_url: video.thumbnailUrl,
             published_at: video.publishedAt,
             channel_title: video.channelTitle,
-            categories: categorization.categories,
-            tags: categorization.tags,
           }).eq('youtube_id', video.videoId);
-          videosUpdated++;
+
+          // Smart Stop: Jab lagatar 5 videos DB mein pehle se maujood mil jayein
+          if (consecutiveExistingCount >= MATCH_THRESHOLD) {
+            console.log(`Smart Stop triggered for ${channelName}: ${MATCH_THRESHOLD} consecutive existing videos found.`);
+            break;
+          }
         } else {
+          // Nayi video mili hai: Reset counter to 0
+          consecutiveExistingCount = 0;
+          videosAdded++;
+
+          const categorization = categorizeVideo(video.title, video.description);
+
           await supabase.from('videos').insert({
             youtube_id: video.videoId,
             title: video.title,
@@ -113,7 +128,6 @@ export async function GET(request: Request) {
             tags: categorization.tags,
             is_external: false,
           });
-          videosAdded++;
         }
       }
     }
