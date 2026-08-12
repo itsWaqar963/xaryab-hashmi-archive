@@ -21,10 +21,13 @@ export const metadata: Metadata = {
     shortcut: "/icon-192.png",
     apple: "/icon-512.png",
   },
+  verification: {
+    google: "HJfNlsnSQ7xNb4a9bMdFuTsXSSUqfxxj4fKr3uNQITg",
+  },
   openGraph: {
     title: "The Xaryab Hashmi Archive",
     description: "Timeless ideas, philosophy, spirituality and lectures — collected in one searchable archive.",
-    url: "https://xaryab-hashmi-archive.vercel.app", // Deploy ke baad apna domain yahan update kar sakte hain
+    url: "https://xaryabhashmi.vercel.app",
     siteName: "Xaryab Hashmi Archive",
     images: [
       {
