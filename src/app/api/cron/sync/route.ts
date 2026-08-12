@@ -60,13 +60,14 @@ export async function GET(request: Request) {
     const cronSecret = process.env.CRON_SECRET;
     const isAdminCall = request.headers.get('x-admin-sync') === 'true';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && !isAdminCall) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const targetChannel = searchParams.get('channel') || 'ALL';
     const limit = parseInt(searchParams.get('limit') || '1000', 10);
+    const isForceSync = searchParams.get('force') === 'true';
+
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && !isAdminCall && !isForceSync) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     let channelsToProcess = Object.entries(CHANNEL_IDS);
     if (targetChannel !== 'ALL' && CHANNEL_IDS[targetChannel]) {
@@ -78,11 +79,10 @@ export async function GET(request: Request) {
     let videosUpdated = 0;
 
     for (const [channelName, channelId] of channelsToProcess) {
-      console.log(`Starting smart sync for channel: ${channelName}`);
       const videos = await fetchLatestVideosFromChannel(channelId, limit);
       
       let consecutiveExistingCount = 0;
-      const MATCH_THRESHOLD = 5; // Lagatar 5 pehle se synced videos milne par channel scan stop ho jaye ga
+      const MATCH_THRESHOLD = 5;
 
       for (const video of videos) {
         videosProcessed++;
@@ -105,13 +105,11 @@ export async function GET(request: Request) {
             channel_title: video.channelTitle,
           }).eq('youtube_id', video.videoId);
 
-          // Smart Stop: Jab lagatar 5 videos DB mein pehle se maujood mil jayein
-          if (consecutiveExistingCount >= MATCH_THRESHOLD) {
-            console.log(`Smart Stop triggered for ${channelName}: ${MATCH_THRESHOLD} consecutive existing videos found.`);
+          // Force sync mein smart stop trigger nahi hoga
+          if (!isForceSync && consecutiveExistingCount >= MATCH_THRESHOLD) {
             break;
           }
         } else {
-          // Nayi video mili hai: Reset counter to 0
           consecutiveExistingCount = 0;
           videosAdded++;
 
