@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://xaryab-directory.vercel.app' // Update with actual domain
+  const baseUrl = 'https://xaryabhashmi.vercel.app'
 
   return [
     {
