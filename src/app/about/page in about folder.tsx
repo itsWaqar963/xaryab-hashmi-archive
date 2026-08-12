@@ -222,7 +222,7 @@ export default function HomePage() {
     <main className="archive-page">
       {/* CINEMATIC PORTRAIT */}
       <div className="hero-portrait" aria-hidden="true">
-        <img src="/images/xaryab-hashmi.jpg" alt="" />
+        <img src="/images/xaryab-hashmi.png" alt="" />
         <div className="portrait-left-fade" />
         <div className="portrait-top-fade" />
         <div className="portrait-bottom-fade" />
@@ -236,39 +236,39 @@ export default function HomePage() {
 
       {/* CONTENT LAYER */}
       <div className="page-content">
-        {/* HEADER */}
-        <header className="site-header">
-          <Link href="/" className="brand">
-            <div className="brand-mark">Z</div>
-            <div className="brand-text">
-              <strong>XARYAB HASHMI</strong>
-              <span>KNOWLEDGE ARCHIVE</span>
-            </div>
-          </Link>
+        {/* HEADER (Cleaned Navigation) */}
+<header className="site-header">
+  <Link href="/" className="brand">
+    <div className="brand-mark">Z</div>
+    <div className="brand-text">
+      <strong>XARYAB HASHMI</strong>
+      <span>KNOWLEDGE ARCHIVE</span>
+    </div>
+  </Link>
 
-          <nav className="main-nav">
-            <Link href="/" className="active">Home</Link>
-            <a href="#archive">Videos</a>
-            <Link href="/about">About</Link>
-          </nav>
+  <nav className="main-nav">
+    <Link href="/" className="active">Home</Link>
+    <a href="#archive">Videos</a>
+    <Link href="/about">About</Link>
+  </nav>
 
-          <a
-            href="https://whatsapp.com/channel/0029VbAwYQX4IBhIy9RScc1b"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="community-button"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21" />
-              <circle cx="10" cy="7" r="3.5" />
-              <path d="M17 11a3 3 0 1 0 0-6" />
-              <path d="M17 14.5a4.5 4.5 0 0 1 3 4.2V21" />
-            </svg>
-            Join Community
-          </a>
-        </header>
+  <a
+    href="https://whatsapp.com/channel/0029VbAwYQX4IBhIy9RScc1b"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="community-button"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21" />
+      <circle cx="10" cy="7" r="3.5" />
+      <path d="M17 11a3 3 0 1 0 0-6" />
+      <path d="M17 14.5a4.5 4.5 0 0 1 3 4.2V21" />
+    </svg>
+    Join Community
+  </a>
+</header>
 
-        {/* HERO SECTION */}
+        {/* HERO */}
         <section className="hero-section">
           <div className="hero-content">
             <div className="archive-label">
@@ -286,7 +286,7 @@ export default function HomePage() {
               Xaryab Hashmi&apos;s ideas, conversations and lectures — collected in one searchable archive.
             </p>
 
-            {/* SEARCH BAR */}
+            {/* SEARCH */}
             <div className="search-wrapper">
               <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="7" />
@@ -343,7 +343,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* STATS STRIP */}
+            {/* STATISTICS */}
             <div className="stats-strip">
               <div className="stat">
                 <strong>{totalVideos > 0 ? `${totalVideos}+` : "757+"}</strong>
@@ -365,9 +365,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* DYNAMIC SUPABASE VIDEO ARCHIVE SECTION */}
+        {/* =========================================================
+            DYNAMIC CONTENT ARCHIVE SECTION (RECOVERED FROM WINDSURF)
+        ========================================================= */}
         <section id="archive" className="py-16 border-t border-white/10 mt-12">
-          {/* Active Search & Channel Filter Bar */}
+          {/* Active Search & Filter Info */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <p className="text-sm text-gray-400">
               {filteredVideos.length > 0 ? (
@@ -375,13 +377,14 @@ export default function HomePage() {
                   Showing <span className="text-white font-medium">{startIndex + 1}-{Math.min(endIndex, filteredVideos.length)}</span> of <span className="text-white font-medium">{filteredVideos.length}</span> videos
                   {selectedCategory !== "All" && <span className="ml-2 text-purple-400">in {selectedCategory}</span>}
                   {selectedChannel !== "All" && <span className="ml-2 text-purple-400">from {selectedChannel}</span>}
-                  {search && <span className="ml-2 text-purple-400">matching &quot;{search}&quot;</span>}
+                  {search && <span className="ml-2 text-purple-400">matching "{search}"</span>}
                 </>
               ) : (
                 <><span className="text-white font-medium">{totalVideos}</span> total videos in archive</>
               )}
             </p>
 
+            {/* Channel Filter Dropdown */}
             {availableChannels.length > 0 && (
               <div className="flex items-center gap-2">
                 <label className="text-xs text-gray-400">Channel:</label>
@@ -426,7 +429,7 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Video Grid Render */}
+          {/* Video Grid */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
@@ -460,7 +463,7 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Pagination Controls */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="mt-12 flex justify-center items-center gap-2">
                   <button
