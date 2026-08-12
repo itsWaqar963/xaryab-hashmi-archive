@@ -73,6 +73,10 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [videoPreview, setVideoPreview] = useState<any>(null);
 
+  // States for Manual Sync Button
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@xaryab.com';
@@ -86,6 +90,29 @@ export default function AdminPage() {
     }
   };
 
+  // Manual Channel Sync Handler
+  const handleManualSync = async () => {
+    setSyncLoading(true);
+    setSyncMessage(null);
+
+    try {
+      const response = await fetch('/api/cron/sync');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Sync failed');
+      }
+
+      setSyncMessage(`✅ Sync Complete! Added: ${data.videosAdded || 0}, Updated: ${data.videosUpdated || 0}, Total Processed: ${data.videosProcessed || 0}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Manual sync error:', error);
+      setSyncMessage(`❌ Error during sync: ${errorMessage}`);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const handleFetchVideo = async () => {
     const videoId = extractYouTubeId(youtubeUrl);
     if (!videoId) {
@@ -95,7 +122,6 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      // Call server-side API endpoint instead of direct YouTube API call
       const response = await fetch(`/api/admin/fetch-video?videoId=${videoId}`);
       const data = await response.json();
 
@@ -107,7 +133,6 @@ export default function AdminPage() {
       setCustomTitle(data.video.title);
       setDescription(data.video.description);
       
-      // Auto-categorize the video
       const categorization = categorizeVideo(data.video.title, data.video.description);
       setCategories(categorization.categories);
       setTags(categorization.tags.join(', '));
@@ -146,7 +171,6 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      // Use auto-categorization if user hasn't manually set categories/tags
       const finalCategories = categories.length > 0 ? categories : categorizeVideo(videoPreview.title, videoPreview.description).categories;
       const finalTags = tags.trim() ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : categorizeVideo(videoPreview.title, videoPreview.description).tags;
 
@@ -164,14 +188,13 @@ export default function AdminPage() {
       });
 
       if (error) {
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
           setMessage('This video already exists in the database.');
         } else {
           throw error;
         }
       } else {
         setMessage('Video added successfully!');
-        // Reset form
         setYoutubeUrl('');
         setCustomTitle('');
         setCustomChannelName('');
@@ -244,17 +267,38 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">Admin Panel</h1>
-            <button
-              onClick={() => setIsAuthenticated(false)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex gap-3">
+              {/* Manual Sync Button */}
+              <button
+                onClick={handleManualSync}
+                disabled={syncLoading}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                {syncLoading ? '🔄 Syncing...' : '🔄 Sync YouTube Channels'}
+              </button>
+              <button
+                onClick={() => setIsAuthenticated(false)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sync Result Banner */}
+        {syncMessage && (
+          <div className={`mb-6 p-4 rounded-lg text-sm font-medium border ${
+            syncMessage.startsWith('✅') 
+              ? 'bg-green-900/40 text-green-300 border-green-700' 
+              : 'bg-red-900/40 text-red-300 border-red-700'
+          }`}>
+            {syncMessage}
+          </div>
+        )}
+
         <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg p-6">
           <h2 className="text-2xl font-bold mb-6">Add External Video</h2>
           
@@ -267,7 +311,6 @@ export default function AdminPage() {
           )}
 
           <form onSubmit={handleAddVideo} className="space-y-6">
-            {/* YouTube URL Input */}
             <div>
               <label className="block text-sm font-medium mb-2">YouTube URL or ID</label>
               <div className="flex gap-2">
@@ -293,7 +336,6 @@ export default function AdminPage() {
               </p>
             </div>
 
-            {/* Video Preview */}
             {videoPreview && (
               <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-4">
                 <h3 className="font-semibold mb-3">Video Preview</h3>
@@ -307,7 +349,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Custom Title */}
             <div>
               <label className="block text-sm font-medium mb-2">Custom Title (Optional)</label>
               <input
@@ -319,7 +360,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Custom Channel Name */}
             <div>
               <label className="block text-sm font-medium mb-2">Custom Channel Name (Optional)</label>
               <input
@@ -332,7 +372,6 @@ export default function AdminPage() {
               <p className="text-xs text-gray-500 mt-1">Leave empty to use YouTube channel name</p>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium mb-2">Description</label>
               <textarea
@@ -344,7 +383,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Categories */}
             <div>
               <label className="block text-sm font-medium mb-2">Categories</label>
               <div className="flex flex-wrap gap-2">
@@ -365,7 +403,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Tags */}
             <div>
               <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
               <input
@@ -378,7 +415,6 @@ export default function AdminPage() {
               <p className="text-xs text-gray-500 mt-1">Supports Urdu text and special characters</p>
             </div>
 
-            {/* Current Channel Info */}
             {videoPreview && (
               <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-4">
                 <h3 className="font-semibold mb-2">Channel Information</h3>
@@ -387,7 +423,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
