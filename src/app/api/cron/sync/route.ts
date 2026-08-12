@@ -2,13 +2,12 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { fetchLatestVideosFromChannel } from '@/lib/youtube';
 
-// YouTube Channel IDs for Journey Towards Karbala and The Grey Lounge
+// YouTube Channel IDs for Journey Towards Karbala, The Grey Lounge, and Xaryab Haschmi Podcast
 const CHANNEL_IDS = {
   JTK: 'UCoYZg0JUn7SuLQI7WBUsvjg', // Journey Towards Karbala
   TGL: 'UCDm4rZQ0sFUa5-os5ipg0Lw', // The Grey Lounge
-  XHP: 'UCOBcqyI4sNm5gcJmGmvDcaA', // Xaryab Haschmi Podcast
+  XHP: 'UCOBcqyI4sNm5gcJmGmvDcaA', // Xaryab Haschmi Podcast (@XaryabHaschmiOfficial)
 };
-
 
 // Categorization rules for new videos
 function categorizeVideo(title: string, description: string | null): { categories: string[], tags: string[] } {
@@ -70,17 +69,19 @@ function getYouTubeApiKey(): string {
 
 export async function GET(request: Request) {
   try {
-    // Verify cron secret for security
+    // Authorization check
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
+    const isAdminCall = request.headers.get('x-admin-sync') === 'true';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    // Allow if request has correct bearer token OR comes from Admin UI header
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && !isAdminCall) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log('🔄 Starting incremental sync (only fetching latest 15 videos per channel)...');
 
-    // Fetch ONLY latest videos from both channels (15 each = 30 total max)
+    // Fetch ONLY latest videos from all 3 channels (15 each = 45 total max)
     const allVideos = [];
     let videosProcessed = 0;
     let videosAdded = 0;
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
     for (const [channelName, channelId] of Object.entries(CHANNEL_IDS)) {
       try {
         console.log(`📺 Fetching latest videos from ${channelName}...`);
-        const videos = await fetchLatestVideosFromChannel(channelId, 15); // Only fetch 15 latest
+        const videos = await fetchLatestVideosFromChannel(channelId, 15);
         
         for (const video of videos) {
           videosProcessed++;
