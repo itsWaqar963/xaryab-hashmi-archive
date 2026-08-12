@@ -73,9 +73,10 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [videoPreview, setVideoPreview] = useState<any>(null);
 
-  // States for Manual Sync Button
+  // States for Real-Time Syncing UI & Progress
   const [syncLoading, setSyncLoading] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [syncProgress, setSyncProgress] = useState<number>(0);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,28 +91,53 @@ export default function AdminPage() {
     }
   };
 
-  // Manual Channel Sync Handler with x-admin-sync header bypass
+  // Real-Time Batch Sync Handler to prevent Vercel Timeout
   const handleManualSync = async () => {
     setSyncLoading(true);
-    setSyncMessage(null);
+    setSyncStatus('🚀 Starting Multi-Channel Real-time Sync...');
+    setSyncProgress(5);
+
+    const channels = [
+      { key: 'JTK', name: 'Journey Towards Karbala' },
+      { key: 'TGL', name: 'The Grey Lounge' },
+      { key: 'XHP', name: 'Xaryab Haschmi Podcast' }
+    ];
+
+    let totalAdded = 0;
+    let totalUpdated = 0;
+    let totalProcessed = 0;
 
     try {
-      const response = await fetch('/api/cron/sync', {
-        headers: {
-          'x-admin-sync': 'true'
-        }
-      });
-      const data = await response.json();
+      for (let i = 0; i < channels.length; i++) {
+        const ch = channels[i];
+        setSyncStatus(`🔄 [${i + 1}/${channels.length}] Syncing videos from ${ch.name}... Please wait.`);
+        
+        // Fetch in smaller chunks (100 videos max per request) to prevent timeout
+        const response = await fetch(`/api/cron/sync?channel=${ch.key}&limit=100`, {
+          headers: {
+            'x-admin-sync': 'true'
+          }
+        });
 
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Sync failed');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({ details: 'Server Timeout / Error' }));
+          throw new Error(`Failed on ${ch.name}: ${errData.details || errData.error}`);
+        }
+
+        const data = await response.json();
+        totalAdded += data.videosAdded || 0;
+        totalUpdated += data.videosUpdated || 0;
+        totalProcessed += data.videosProcessed || 0;
+
+        const currentProgress = Math.round(((i + 1) / channels.length) * 100);
+        setSyncProgress(currentProgress);
       }
 
-      setSyncMessage(`✅ Sync Complete! Added: ${data.videosAdded || 0}, Updated: ${data.videosUpdated || 0}, Total Processed: ${data.videosProcessed || 0}`);
+      setSyncStatus(`✅ Sync Complete! Added: ${totalAdded}, Updated: ${totalUpdated}, Total Processed: ${totalProcessed}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Manual sync error:', error);
-      setSyncMessage(`❌ Error during sync: ${errorMessage}`);
+      setSyncStatus(`❌ Error during sync: ${errorMessage}`);
     } finally {
       setSyncLoading(false);
     }
@@ -278,7 +304,7 @@ export default function AdminPage() {
                 disabled={syncLoading}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
               >
-                {syncLoading ? '🔄 Syncing...' : '🔄 Sync YouTube Channels'}
+                {syncLoading ? '🔄 Syncing In Progress...' : '🔄 Sync YouTube Channels'}
               </button>
               <button
                 onClick={() => setIsAuthenticated(false)}
@@ -292,14 +318,27 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Sync Result Banner */}
-        {syncMessage && (
+        {/* Real-time Sync Status & Live Progress Bar */}
+        {syncStatus && (
           <div className={`mb-6 p-4 rounded-lg text-sm font-medium border ${
-            syncMessage.startsWith('✅') 
+            syncStatus.startsWith('✅') 
               ? 'bg-green-900/40 text-green-300 border-green-700' 
-              : 'bg-red-900/40 text-red-300 border-red-700'
+              : syncStatus.startsWith('❌')
+              ? 'bg-red-900/40 text-red-300 border-red-700'
+              : 'bg-[#1E1E1E] text-purple-300 border-[#2A2A2A]'
           }`}>
-            {syncMessage}
+            <div className="flex justify-between items-center mb-2 font-semibold">
+              <span>{syncStatus}</span>
+              {syncLoading && <span>{syncProgress}%</span>}
+            </div>
+            {syncLoading && (
+              <div className="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden mt-2">
+                <div 
+                  className="bg-purple-500 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${syncProgress}%` }}
+                ></div>
+              </div>
+            )}
           </div>
         )}
 
