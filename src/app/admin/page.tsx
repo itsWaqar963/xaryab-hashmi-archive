@@ -91,7 +91,7 @@ export default function AdminPage() {
     }
   };
 
-  // Real-Time Batch Sync Handler to prevent Vercel Timeout
+  // Real-Time Batch Sync Handler to prevent Vercel Timeout with Smart Stop
   const handleManualSync = async () => {
     setSyncLoading(true);
     setSyncStatus('🚀 Starting Multi-Channel Real-time Sync...');
@@ -112,8 +112,8 @@ export default function AdminPage() {
         const ch = channels[i];
         setSyncStatus(`🔄 [${i + 1}/${channels.length}] Syncing videos from ${ch.name}... Please wait.`);
         
-        // Fetch in smaller chunks (100 videos max per request) to prevent timeout
-        const response = await fetch(`/api/cron/sync?channel=${ch.key}&limit=100`, {
+        // Limit set to 1000 to fetch full playlist if needed; backend smart stop will interrupt early when 5 consecutive existing videos are met
+        const response = await fetch(`/api/cron/sync?channel=${ch.key}&limit=1000`, {
           headers: {
             'x-admin-sync': 'true'
           }
