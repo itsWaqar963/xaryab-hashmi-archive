@@ -90,13 +90,17 @@ export default function AdminPage() {
     }
   };
 
-  // Manual Channel Sync Handler
+  // Manual Channel Sync Handler with x-admin-sync header bypass
   const handleManualSync = async () => {
     setSyncLoading(true);
     setSyncMessage(null);
 
     try {
-      const response = await fetch('/api/cron/sync');
+      const response = await fetch('/api/cron/sync', {
+        headers: {
+          'x-admin-sync': 'true'
+        }
+      });
       const data = await response.json();
 
       if (!response.ok) {
