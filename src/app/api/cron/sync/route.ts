@@ -90,7 +90,7 @@ export async function GET(request: Request) {
     for (const [channelName, channelId] of Object.entries(CHANNEL_IDS)) {
       try {
         console.log(`📺 Fetching latest videos from ${channelName}...`);
-        const videos = await fetchLatestVideosFromChannel(channelId, 15);
+        const videos = await fetchLatestVideosFromChannel(channelId, 500);
         
         for (const video of videos) {
           videosProcessed++;
