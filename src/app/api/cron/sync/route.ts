@@ -6,7 +6,9 @@ import { fetchLatestVideosFromChannel } from '@/lib/youtube';
 const CHANNEL_IDS = {
   JTK: 'UCoYZg0JUn7SuLQI7WBUsvjg', // Journey Towards Karbala
   TGL: 'UCDm4rZQ0sFUa5-os5ipg0Lw', // The Grey Lounge
+  XHP: 'UCOBcqyI4sNm5gcJmGmvDcaA', // Xaryab Haschmi Podcast
 };
+
 
 // Categorization rules for new videos
 function categorizeVideo(title: string, description: string | null): { categories: string[], tags: string[] } {
