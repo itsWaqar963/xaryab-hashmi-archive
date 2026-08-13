@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     // Vercel build ke waqt TypeScript errors ko bypass karne ke liye
     ignoreBuildErrors: true,
@@ -19,6 +18,22 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: {
     root: __dirname,
+  },
+  // Webpack config for Transformers.js WebAssembly binaries support
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "sharp$": false,
+      "onnxruntime-node$": false,
+    };
+
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
+
+    return config;
   },
 };
 
