@@ -1,41 +1,27 @@
-import { pipeline, env } from "@xenova/transformers";
-
-// WebAssembly/Local Browser Environment Settings
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-let summarizerInstance: any = null;
-
-export async function getSummarizer(progressCallback?: (progress: number) => void) {
-  if (!summarizerInstance) {
-    // Lightweight local Hugging Face Summarization model (Xenova DistilBART)
-    summarizerInstance = await pipeline("summarization", "Xenova/distilbart-cnn-6-6", {
-      progress_callback: (data: any) => {
-        if (data.status === "progress" && progressCallback) {
-          progressCallback(Math.round(data.progress));
-        }
-      },
-    });
-  }
-  return summarizerInstance;
-}
-
 export async function generateAISummary(
   text: string,
   onProgress?: (percent: number) => void
 ): Promise<string[]> {
   try {
-    if (!text || text.trim().length < 30) {
-      return [
-        "Concise reflection on key themes discussed in the video.",
-        "Highlights core philosophical and practical perspectives.",
-        "Summary generated directly from available video context."
-      ];
+    // Only run on browser client side
+    if (typeof window === "undefined") {
+      return fallbackSummary(text);
     }
 
-    const generator = await getSummarizer(onProgress);
+    // Dynamic import to prevent SSR build crashes
+    const { pipeline, env } = await import("@xenova/transformers");
 
-    // AI Summarization Run (Max length limits to keep response ultra fast)
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    const generator = await pipeline("summarization", "Xenova/distilbart-cnn-6-6", {
+      progress_callback: (data: any) => {
+        if (data.status === "progress" && onProgress) {
+          onProgress(Math.round(data.progress));
+        }
+      },
+    });
+
     const result = await generator(text, {
       max_new_tokens: 60,
       min_new_tokens: 20,
@@ -44,24 +30,30 @@ export async function generateAISummary(
 
     const summaryText = result[0]?.summary_text || "";
 
-    // Split generated paragraph into clean bullet points
     const sentences = summaryText
       .split(/(?<=[.!?])\s+/)
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 10);
 
-    if (sentences.length > 0) {
-      return sentences.slice(0, 3);
-    }
-
-    return [summaryText];
+    return sentences.length > 0 ? sentences.slice(0, 3) : [summaryText];
   } catch (error) {
     console.error("Transformers.js AI Error:", error);
-    // Fallback if client browser blocks model download
-    return [
-      "Key discussion points and core takeaways from this session.",
-      "Explores important concepts shared throughout the video.",
-      "Direct insights extracted from primary channel content."
-    ];
+    return fallbackSummary(text);
   }
+}
+
+function fallbackSummary(text: string): string[] {
+  const points = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 20 && !line.startsWith("http"))
+    .slice(0, 3);
+
+  return points.length > 0
+    ? points
+    : [
+        "Explores key concepts and deeper philosophical reflections.",
+        "Highlights personal insights and spiritual wisdom.",
+        "Discusses practical life applications and moral lessons.",
+      ];
 }
