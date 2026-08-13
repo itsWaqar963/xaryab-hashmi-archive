@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { generateAISummary } from "@/lib/summarizer";
 
 interface Video {
   id: string;
@@ -32,8 +33,8 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState<string[]>([]);
 
-  // TL;DR Trigger Function
-  const handleTLDRClick = (e: React.MouseEvent) => {
+  // Real Hugging Face AI TL;DR Trigger Function
+  const handleTLDRClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevents video play trigger
 
     if (tldrState === "expanded") {
@@ -47,38 +48,35 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
     }
 
     if (tldrState === "idle") {
-      setTldrState("generating");
-      setProgress(15);
-
-      // Simulated Local AI Progress Cycle
-      const timer1 = setTimeout(() => setProgress(65), 400);
-      const timer2 = setTimeout(() => {
-        setProgress(100);
-        
-        // Split description or generate concise bullet points
-        const rawDesc = video.description || "";
-        const points = rawDesc
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => line.length > 20 && !line.startsWith("http"))
-          .slice(0, 3);
-
-        const finalSummary = points.length > 0 
-          ? points 
-          : [
-              "Explores key concepts and deeper philosophical reflections.",
-              "Highlights personal insights and spiritual wisdom.",
-              "Discusses practical life applications and moral lessons."
-            ];
-
-        setSummary(finalSummary);
+      // If summary already generated before, reuse it instantly
+      if (summary.length > 0) {
         setTldrState("expanded");
-      }, 900);
+        return;
+      }
 
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
+      setTldrState("generating");
+      setProgress(5);
+
+      try {
+        const textToSummarize = `${displayTitle}. ${video.description || ""}`;
+        
+        // Calling Transformers.js Local AI Model
+        const aiPoints = await generateAISummary(textToSummarize, (percent) => {
+          if (percent > 0) setProgress(percent);
+        });
+
+        setProgress(100);
+        setSummary(aiPoints);
+        setTldrState("expanded");
+      } catch (err) {
+        console.error("AI Generation Error:", err);
+        setSummary([
+          "Explores key concepts and deeper reflections.",
+          "Highlights personal insights and wisdom.",
+          "Discusses practical life applications."
+        ]);
+        setTldrState("expanded");
+      }
     }
   };
 
@@ -158,7 +156,7 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
               </div>
               <span className="text-[10px] text-purple-400/80">{progress}%</span>
             </div>
-            <p className="text-[10px] text-gray-400 mb-2">Extracting key insights from the content</p>
+            <p className="text-[10px] text-gray-400 mb-2">Extracting key insights from content via Hugging Face AI</p>
             <div className="w-full h-1 bg-purple-950 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-purple-500 to-indigo-400 transition-all duration-300"
@@ -177,7 +175,7 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
             <div className="flex items-center justify-between border-b border-purple-500/20 pb-2 mb-2.5">
               <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-[11px] uppercase tracking-wider">
                 <span>📌</span>
-                <span>TL;DR Summary</span>
+                <span>TL;DR SUMMARY</span>
               </div>
               <button
                 onClick={() => setTldrState("collapsed")}
