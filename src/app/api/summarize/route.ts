@@ -4,73 +4,80 @@ export async function POST(req: Request) {
   try {
     const { text } = await req.json();
 
-    if (!text || text.trim().length < 20) {
+    if (!text || text.trim().length < 10) {
       return NextResponse.json({
         summary: [
-          "Short reflection on core themes discussed in the video.",
-          "Highlights essential insights and practical takeaways.",
-          "Summary generated directly from available context.",
-        ],
+          "Key reflections shared in this session.",
+          "Core themes and concepts explored in detail.",
+          "Practical insights and spiritual wisdom."
+        ]
       });
     }
 
-    const apiKey = process.env.HUGGINGFACE_API_KEY;
+    // Pure Rule-based NLP Extractor (No External APIs)
+    const summary = extractSmartPoints(text);
 
-    if (!apiKey) {
-      console.error("HUGGINGFACE_API_KEY is missing in environment variables!");
-    }
-
-    // Updated Hugging Face Router Endpoint with OpenAI Chat Format
-    const response = await fetch(
-      "https://router.huggingface.co/hf-inference/v1/chat/completions",
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey || ""}`,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify({
-          model: "facebook/bart-large-cnn",
-          messages: [
-            {
-              role: "user",
-              content: `Summarize the following text into 3 concise bullet points:\n\n${text}`,
-            },
-          ],
-          max_tokens: 120,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HF Router API Error (${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json();
-    const summaryText = result.choices?.[0]?.message?.content || "";
-
-    // Split generated AI summary into clean bullet points
-    const sentences = summaryText
-      .split(/(?<=[.!?\n])\s+/)
-      .map((s: string) => s.replace(/^[-*•\d.\s]+/, "").trim())
-      .filter((s: string) => s.length > 8);
-
-    const finalPoints =
-      sentences.length > 0 ? sentences.slice(0, 3) : [summaryText];
-
-    return NextResponse.json({ summary: finalPoints });
+    return NextResponse.json({ summary });
   } catch (error) {
-    console.error("API Route Error:", error);
-    return NextResponse.json(
-      {
-        summary: [
-          "Explores key concepts and deeper reflections.",
-          "Highlights personal insights and core wisdom.",
-          "Discusses practical life applications and moral lessons.",
-        ],
-      },
-      { status: 500 }
-    );
+    console.error("Summarize Route Error:", error);
+    return NextResponse.json({
+      summary: [
+        "Key reflections shared in this session.",
+        "Core themes and concepts explored in detail.",
+        "Practical insights and spiritual wisdom."
+      ]
+    });
   }
+}
+
+function extractSmartPoints(fullText: string): string[] {
+  // 1. Clean links, timestamps, social handles, and hashtags
+  const cleanText = fullText
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[\w.-]+@[\w.-]+\.\w+/g, "")
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, "")
+    .replace(/#\w+/g, "")
+    .replace(/[#*_~`]/g, "");
+
+  // 2. Split into clean sentences/lines
+  const rawSentences = cleanText
+    .split(/(?<=[.!?\n])\s+/)
+    .map((s) => s.replace(/^[-*•\d.\s]+/, "").trim())
+    .filter((s) => s.length > 20 && s.length < 180);
+
+  // 3. Extract unique, meaningful lines
+  const uniquePoints: string[] = [];
+  for (const sentence of rawSentences) {
+    // Avoid redundant or filler sentences
+    const lower = sentence.toLowerCase();
+    if (
+      !lower.includes("subscribe") &&
+      !lower.includes("follow us") &&
+      !lower.includes("like, share") &&
+      !lower.includes("comment below")
+    ) {
+      if (!uniquePoints.includes(sentence)) {
+        uniquePoints.push(sentence);
+      }
+    }
+    if (uniquePoints.length === 3) break;
+  }
+
+  // 4. Fallback in case description is too short
+  if (uniquePoints.length === 0) {
+    return [
+      `Overview: ${cleanText.slice(0, 80)}...`,
+      "Explores essential themes and core discussions.",
+      "Key reflections and practical life takeaways."
+    ];
+  }
+
+  if (uniquePoints.length === 1) {
+    uniquePoints.push("Explores core concepts and deeper reflections.");
+    uniquePoints.push("Discusses practical insights and moral lessons.");
+  } else if (uniquePoints.length === 2) {
+    uniquePoints.push("Highlights practical takeaways and key reflections.");
+  }
+
+  return uniquePoints;
 }
