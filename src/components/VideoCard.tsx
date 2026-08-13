@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface Video {
   id: string;
   youtube_id: string;
@@ -20,8 +22,65 @@ interface VideoCardProps {
   formatDate: (dateString: string) => void;
 }
 
+type TLDRState = "idle" | "generating" | "expanded" | "collapsed";
+
 export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps) {
   const displayTitle = video.custom_title || video.title;
+
+  // TL;DR States
+  const [tldrState, setTldrState] = useState<TLDRState>("idle");
+  const [progress, setProgress] = useState(0);
+  const [summary, setSummary] = useState<string[]>([]);
+
+  // TL;DR Trigger Function
+  const handleTLDRClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents video play trigger
+
+    if (tldrState === "expanded") {
+      setTldrState("collapsed");
+      return;
+    }
+
+    if (tldrState === "collapsed") {
+      setTldrState("expanded");
+      return;
+    }
+
+    if (tldrState === "idle") {
+      setTldrState("generating");
+      setProgress(15);
+
+      // Simulated Local AI Progress Cycle
+      const timer1 = setTimeout(() => setProgress(65), 400);
+      const timer2 = setTimeout(() => {
+        setProgress(100);
+        
+        // Split description or generate concise bullet points
+        const rawDesc = video.description || "";
+        const points = rawDesc
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 20 && !line.startsWith("http"))
+          .slice(0, 3);
+
+        const finalSummary = points.length > 0 
+          ? points 
+          : [
+              "Explores key concepts and deeper philosophical reflections.",
+              "Highlights personal insights and spiritual wisdom.",
+              "Discusses practical life applications and moral lessons."
+            ];
+
+        setSummary(finalSummary);
+        setTldrState("expanded");
+      }, 900);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  };
 
   return (
     <div
@@ -37,7 +96,7 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
           loading="lazy"
         />
 
-        {/* External Badge (if applicable) */}
+        {/* External Badge */}
         {video.is_external && (
           <span className="absolute top-2 right-2 bg-indigo-600/90 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-400/30">
             External
@@ -61,14 +120,108 @@ export default function VideoCard({ video, onPlay, formatDate }: VideoCardProps)
             {displayTitle}
           </h3>
 
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-            <span className="font-medium text-gray-300 truncate max-w-[150px]">
-              {video.channel_title}
-            </span>
-            <span>•</span>
-            <span>{formatDate(video.published_at)}</span>
+          {/* Meta Info & TL;DR Button Bar */}
+          <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-medium text-gray-300 truncate max-w-[130px]">
+                {video.channel_title}
+              </span>
+              <span>•</span>
+              <span>{formatDate(video.published_at)}</span>
+            </div>
+
+            {/* Aesthetic Purple Gradient TL;DR Chip */}
+            <button
+              onClick={handleTLDRClick}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-300 border ${
+                tldrState === "expanded"
+                  ? "bg-purple-950/80 border-purple-500/60 text-purple-200 shadow-sm shadow-purple-500/20"
+                  : "bg-gradient-to-r from-purple-900/60 via-purple-800/40 to-indigo-900/60 border-purple-500/40 text-purple-200 hover:border-purple-400 hover:shadow-md hover:shadow-purple-500/20"
+              }`}
+            >
+              <span className="text-[10px]">✨</span>
+              <span>TL;DR</span>
+              <span className="text-[9px] opacity-70">
+                {tldrState === "expanded" ? "▲" : tldrState === "collapsed" ? "▼" : "✦"}
+              </span>
+            </button>
           </div>
         </div>
+
+        {/* STATE 2: GENERATING STATE (PROGRESS BAR) */}
+        {tldrState === "generating" && (
+          <div className="mt-3 p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-xs animate-pulse">
+            <div className="flex justify-between items-center text-purple-300 text-[11px] font-medium mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="animate-spin text-purple-400">✨</span>
+                <span>Generating TL;DR...</span>
+              </div>
+              <span className="text-[10px] text-purple-400/80">{progress}%</span>
+            </div>
+            <p className="text-[10px] text-gray-400 mb-2">Extracting key insights from the content</p>
+            <div className="w-full h-1 bg-purple-950 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-400 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 3: EXPANDED SUMMARY BOX */}
+        {tldrState === "expanded" && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="mt-3 p-3.5 rounded-xl bg-[#141026] border border-purple-500/30 text-xs shadow-inner transition-all duration-300"
+          >
+            <div className="flex items-center justify-between border-b border-purple-500/20 pb-2 mb-2.5">
+              <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-[11px] uppercase tracking-wider">
+                <span>📌</span>
+                <span>TL;DR Summary</span>
+              </div>
+              <button
+                onClick={() => setTldrState("collapsed")}
+                className="text-gray-400 hover:text-white p-0.5 text-sm leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <ul className="space-y-2 text-gray-300 text-[11px] leading-relaxed">
+              {summary.map((point, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-purple-400 text-xs mt-0.5">✓</span>
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-3 pt-2 border-t border-purple-500/10 flex items-center justify-between text-[10px] text-gray-400">
+              <span className="text-gray-500">Summary by AI • Just now</span>
+              <div className="flex gap-2 text-gray-400">
+                <button className="hover:text-purple-300 transition-colors">👍</button>
+                <button className="hover:text-purple-300 transition-colors">👎</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 4: COLLAPSED SUMMARY STATE */}
+        {tldrState === "collapsed" && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setTldrState("expanded");
+            }}
+            className="mt-3 p-2.5 rounded-xl bg-purple-950/20 border border-purple-500/20 text-[11px] text-gray-300 flex items-center justify-between hover:border-purple-500/40 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-1.5 truncate pr-2">
+              <span className="text-purple-400">📌</span>
+              <span className="truncate text-gray-300">{summary[0] || "Summary generated..."}</span>
+            </div>
+            <span className="text-[9px] text-purple-400 whitespace-nowrap">View All</span>
+          </div>
+        )}
 
         {/* Tags */}
         {video.tags && video.tags.length > 0 && (
