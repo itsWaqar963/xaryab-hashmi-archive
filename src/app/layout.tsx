@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,10 +17,23 @@ export const metadata: Metadata = {
   title: "Xaryab Hashmi | Knowledge Archive & Video Directory",
   description: "Official digital archive dedicated to the lectures, podcasts, and teachings of Xaryab Hashmi — Journey Towards Karbala & The Grey Lounge.",
   manifest: "/manifest.json",
+  applicationName: "Xaryab Archive",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Xaryab Archive",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
     shortcut: "/icon-192.png",
     apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -70,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col bg-[#09090b] text-white">
         {children}
+        <InstallPrompt />
       </body>
     </html>
   );
