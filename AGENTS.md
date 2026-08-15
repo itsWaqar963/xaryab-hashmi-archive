@@ -105,3 +105,16 @@ Before deploying:
 - Ensure all environment variables are set in production
 - PWA features work in production mode only
 - Admin panel protected from search engines (robots.txt)
+
+## Learned User Preferences
+- Wants custom PWA install popup on visit; should not rely on hunting browser Install app controls
+- Prefer in-app YouTube embed playback plus an Open in YouTube action so visitors stay on site longer
+- Do not show hardcoded or flashing placeholder stats (e.g. video counts); render the real number once
+- Live presence UI: green pulsing dot + online count; place it where THE XARYAB HASHMI ARCHIVE eyebrow was; show HH:MM:SS clock in front of the online label
+- Deploy by committing and pushing to GitHub so Vercel auto-deploys
+
+## Learned Workspace Facts
+- Production site: https://xaryabhashmi.vercel.app
+- GitHub remote: https://github.com/itsWaqar963/xaryab-hashmi-archive.git
+- Site intent: master knowledge archive for Xaryab Hashmi teachings, not only a YouTube thumbnail directory
+- Default deployment branch in use: `master`

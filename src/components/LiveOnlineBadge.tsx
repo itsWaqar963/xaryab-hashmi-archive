@@ -72,9 +72,30 @@ function useLiveOnlineCount(): number {
   return useContext(LiveOnlineContext);
 }
 
-/** Same slot as former archive label: glowing green dot + "{n} online". */
+function formatClock(date: Date): string {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
+function useLiveClock(): string {
+  const [time, setTime] = useState(() => formatClock(new Date()));
+
+  useEffect(() => {
+    const tick = () => setTime(formatClock(new Date()));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return time;
+}
+
+/** Hero label slot: green pulse + HH:MM:SS + "{n} online". */
 export default function LiveOnlineBadge() {
   const online = useLiveOnlineCount();
+  const time = useLiveClock();
 
   return (
     <div
@@ -86,7 +107,16 @@ export default function LiveOnlineBadge() {
         <span className="live-online-dot-ping" />
         <span className="live-online-dot-core" />
       </span>
-      <span className="live-online-text">{online} online</span>
+      <span className="live-online-text">
+        <span className="live-online-time">{time}</span>
+        <span className="live-online-sep" aria-hidden="true">
+          ·
+        </span>
+        <span>
+          {online} online
+        </span>
+      </span>
     </div>
   );
 }
+
