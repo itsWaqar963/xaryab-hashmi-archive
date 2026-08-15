@@ -247,7 +247,6 @@ export default function HomePage() {
   return (
     <LiveOnlineProvider>
     <main className="archive-page">
-      <LiveOnlineBadge />
       {/* CINEMATIC PORTRAIT */}
       <div className="hero-portrait" aria-hidden="true">
         <img src="/images/xaryab-hashmi.jpg" alt="" />
@@ -299,10 +298,7 @@ export default function HomePage() {
         {/* HERO SECTION */}
         <section className="hero-section">
           <div className="hero-content">
-            <div className="archive-label">
-              <span />
-              THE XARYAB HASHMI ARCHIVE
-            </div>
+            <LiveOnlineBadge />
 
             <h1>
               Timeless Ideas.

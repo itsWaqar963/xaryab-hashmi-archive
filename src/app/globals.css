@@ -876,30 +876,15 @@ input {
 }
 
 /* ============================================================
-   LIVE ONLINE BADGE (top-center pill)
+   LIVE ONLINE BADGE (hero label slot)
 ============================================================ */
 
 .live-online-badge {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  z-index: 70;
-  transform: translateX(-50%);
-
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 
-  padding: 7px 14px 7px 11px;
-
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-
-  background: rgba(12, 12, 14, 0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  margin-bottom: 24px;
 
   pointer-events: none;
   user-select: none;
@@ -917,7 +902,7 @@ input {
   inset: 0;
   border-radius: 50%;
   background: #22c55e;
-  opacity: 0.7;
+  opacity: 0.75;
   animation: live-online-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
@@ -928,14 +913,14 @@ input {
   height: 8px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.85);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.9);
 }
 
 .live-online-text {
-  color: #ffffff;
+  color: #4ade80;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
   line-height: 1;
   white-space: nowrap;
 }
@@ -943,7 +928,7 @@ input {
 @keyframes live-online-ping {
   0% {
     transform: scale(1);
-    opacity: 0.7;
+    opacity: 0.75;
   }
   75%,
   100% {
@@ -953,13 +938,8 @@ input {
 }
 
 @media (max-width: 700px) {
-  .live-online-badge {
-    top: 12px;
-    padding: 6px 12px 6px 10px;
-  }
-
   .live-online-text {
-    font-size: 12px;
+    font-size: 10px;
   }
 }
 

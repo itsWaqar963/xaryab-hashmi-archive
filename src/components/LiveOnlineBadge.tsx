@@ -72,7 +72,7 @@ function useLiveOnlineCount(): number {
   return useContext(LiveOnlineContext);
 }
 
-/** Top-center frosted pill — matches Deluxe Saloon–style live indicator. */
+/** Same slot as former archive label: glowing green dot + "{n} online". */
 export default function LiveOnlineBadge() {
   const online = useLiveOnlineCount();
 
