@@ -504,7 +504,7 @@ input {
 }
 
 
-.archive-label span {
+.archive-label > span:first-child {
   width: 8px;
   height: 8px;
 
@@ -869,6 +869,98 @@ input {
   border-top: 1px solid rgba(255, 255, 255, 0.09);
 
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.stats-strip--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* ============================================================
+   LIVE ONLINE BADGE (top-center pill)
+============================================================ */
+
+.live-online-badge {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 70;
+  transform: translateX(-50%);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 7px 14px 7px 11px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  background: rgba(12, 12, 14, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  pointer-events: none;
+  user-select: none;
+}
+
+.live-online-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.live-online-dot-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  opacity: 0.7;
+  animation: live-online-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.live-online-dot-core {
+  position: relative;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.85);
+}
+
+.live-online-text {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@keyframes live-online-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  75%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .live-online-badge {
+    top: 12px;
+    padding: 6px 12px 6px 10px;
+  }
+
+  .live-online-text {
+    font-size: 12px;
+  }
 }
 
 

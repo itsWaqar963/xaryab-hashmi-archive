@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import VideoCard from "@/components/VideoCard";
 import VideoCardSkeleton from "@/components/VideoCardSkeleton";
+import AnimatedCounter from "@/components/AnimatedCounter";
+import LiveOnlineBadge, {
+  LiveOnlineProvider,
+} from "@/components/LiveOnlineBadge";
+import VideoPlayerModal from "@/components/VideoPlayerModal";
 
 interface Video {
   id: string;
@@ -92,9 +97,10 @@ export default function HomePage() {
   const [selectedChannel, setSelectedChannel] = useState("All");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalVideos, setTotalVideos] = useState(0);
+  const [totalVideos, setTotalVideos] = useState<number | null>(null);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [availableChannels, setAvailableChannels] = useState<string[]>([]);
+  const [activeVideo, setActiveVideo] = useState<Video | null>(null);
 
   useEffect(() => {
     fetchVideos();
@@ -189,14 +195,34 @@ export default function HomePage() {
   }
 
   function openVideo(youtubeId: string) {
-    const mobileUrl = `vnd.youtube:${youtubeId}`;
-    const webUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-
-    window.location.href = mobileUrl;
-    setTimeout(() => {
-      window.location.href = webUrl;
-    }, 1000);
+    const video =
+      videos.find((v) => v.youtube_id === youtubeId) ||
+      filteredVideos.find((v) => v.youtube_id === youtubeId) ||
+      null;
+    if (video) {
+      setActiveVideo(video);
+      return;
+    }
+    setActiveVideo({
+      id: youtubeId,
+      youtube_id: youtubeId,
+      title: "Watch video",
+      custom_title: null,
+      description: null,
+      thumbnail_url: "",
+      published_at: new Date().toISOString(),
+      channel_title: "",
+      categories: [],
+      tags: [],
+      is_external: false,
+    });
   }
+
+  const podcastCount = useMemo(() => {
+    return videos.filter((v) =>
+      v.categories?.some((c) => c.toLowerCase().includes("podcast"))
+    ).length;
+  }, [videos]);
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
@@ -219,7 +245,9 @@ export default function HomePage() {
   }
 
   return (
+    <LiveOnlineProvider>
     <main className="archive-page">
+      <LiveOnlineBadge />
       {/* CINEMATIC PORTRAIT */}
       <div className="hero-portrait" aria-hidden="true">
         <img src="/images/xaryab-hashmi.jpg" alt="" />
@@ -258,13 +286,13 @@ export default function HomePage() {
             rel="noopener noreferrer"
             className="community-button"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21" />
-              <circle cx="10" cy="7" r="3.5" />
-              <path d="M17 11a3 3 0 1 0 0-6" />
-              <path d="M17 14.5a4.5 4.5 0 0 1 3 4.2V21" />
-            </svg>
-            Join Community
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21" />
+                <circle cx="10" cy="7" r="3.5" />
+                <path d="M17 11a3 3 0 1 0 0-6" />
+                <path d="M17 14.5a4.5 4.5 0 0 1 3 4.2V21" />
+              </svg>
+              Join Community
           </a>
         </header>
 
@@ -344,22 +372,22 @@ export default function HomePage() {
             </div>
 
             {/* STATS STRIP */}
-            <div className="stats-strip">
+            <div className="stats-strip stats-strip--3">
               <div className="stat">
-                <strong>{totalVideos > 0 ? `${totalVideos}+` : "757+"}</strong>
+                <AnimatedCounter value={totalVideos} />
                 <span>VIDEOS</span>
               </div>
               <div className="stat">
-                <strong>300+</strong>
+                <AnimatedCounter
+                  value={loading ? null : podcastCount}
+                />
                 <span>PODCASTS</span>
               </div>
               <div className="stat">
-                <strong>50+</strong>
-                <span>PLAYLISTS</span>
-              </div>
-              <div className="stat">
-                <strong>10K+</strong>
-                <span>COMMUNITY</span>
+                <AnimatedCounter
+                  value={loading ? null : availableChannels.length}
+                />
+                <span>CHANNELS</span>
               </div>
             </div>
           </div>
@@ -378,7 +406,7 @@ export default function HomePage() {
                   {search && <span className="ml-2 text-purple-400">matching &quot;{search}&quot;</span>}
                 </>
               ) : (
-                <><span className="text-white font-medium">{totalVideos}</span> total videos in archive</>
+                <><span className="text-white font-medium">{totalVideos ?? "…"}</span> total videos in archive</>
               )}
             </p>
 
@@ -486,6 +514,15 @@ export default function HomePage() {
           )}
         </section>
       </div>
+
+      {activeVideo ? (
+        <VideoPlayerModal
+          youtubeId={activeVideo.youtube_id}
+          title={activeVideo.custom_title || activeVideo.title}
+          onClose={() => setActiveVideo(null)}
+        />
+      ) : null}
     </main>
+    </LiveOnlineProvider>
   );
 }
